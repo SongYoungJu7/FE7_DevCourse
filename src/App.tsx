@@ -1,5 +1,11 @@
-import { RotateCcw, Trash2 } from "lucide-react";
-import { ImageWithFallback } from "./components/ImageWithFallback";
+import { RotateCcw } from "lucide-react";
+import ImageCard from "./components/ImageCard";
+import { useEffect, useState } from "react";
+
+export type ItemType = [
+  number,
+  { image: { src: string; caption: string; alt: string }; isDeleted: boolean },
+];
 
 export default function App() {
   const galleryImages = [
@@ -44,25 +50,53 @@ export default function App() {
       alt: "Colorful wildflowers in a vast meadow landscape",
     },
   ];
+  const [deleteCount, setDeleteCount] = useState(0);
+  const initialItems: ItemType[] = [];
+
+  galleryImages.forEach((image, index) => {
+    initialItems.push([
+      index,
+      {
+        image: { src: image.src, caption: image.caption, alt: image.alt },
+        isDeleted: false,
+      },
+    ]);
+  });
+
+  const [items, setItems] = useState(initialItems);
+
+  const allRestoreClick = () =>
+    setItems((item) =>
+      item.map(([id, data]) => [id, { ...data, isDeleted: false }])
+    );
+
+  useEffect(() => {
+    const count = items.filter(([_, data]) => data.isDeleted).length;
+    setDeleteCount(count);
+  }, [items]);
+
   return (
     <main className="min-h-screen bg-background">
       <header className="text-center py-8 sm:py-12 px-4 sm:px-6">
-        {/* 복구 버튼 영역 추가 */}
-        <div className="flex justify-between items-start max-w-7xl mx-auto mb-8">
-          <div className="flex gap-3">
-            <button className="flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-background hover:bg-accent transition-colors duration-200">
-              <RotateCcw className="w-4 h-4" />
-              Restore All 0
-            </button>
+        {deleteCount === 0 ? null : (
+          <div className="flex justify-between items-start max-w-7xl mx-auto mb-8">
+            <div className="flex gap-3">
+              <button
+                onClick={allRestoreClick}
+                className="flex items-center gap-2 px-3 py-2 border border-border rounded-md bg-background hover:bg-accent transition-colors duration-200 cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Restore All {deleteCount}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         <h1 className="mb-3 sm:mb-4 text-xl sm:text-2xl">Gallery Wall</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base px-2">
           An art gallery inspired collection featuring natural landscapes in
           various scales and arrangements
         </p>
       </header>
-
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-8 sm:pb-12">
         <article
           className="grid gap-2 sm:gap-3 md:gap-4 auto-rows-fr grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
@@ -70,56 +104,8 @@ export default function App() {
             gridAutoRows: "150px sm:180px md:200px",
           }}
         >
-          {/* 이미지 1장 렌더링 */}
-          {/* 삭제가 되었을 때는 figure 태그에 classname에 `opacity-40 grayscale border-dashed border-muted-foreground/30` 클래스를 추가하세요 */}
-          {galleryImages.map((image, index) => (
-            <figure
-              key={index}
-              className={`
-                  group bg-background rounded-lg overflow-hidden shadow-sm transition-all duration-300 relative                 
-                  col-span-1 row-span-1 sm:col-span-1 sm:row-span-1 md:col-span-1 md:row-span-2
-                `}
-              style={{
-                borderWidth: "0.5px",
-              }}
-            >
-              <section className="relative overflow-hidden h-full">
-                <ImageWithFallback
-                  src={image.src}
-                  alt={image.alt}
-                  className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110`}
-                />
-                <section className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></section>
-                {/* Delete button */}
-                <button className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-destructive text-destructive-foreground rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 hover:bg-destructive/90">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                {/* 삭제가 안되었을 때 캡션 */}
-                {index % 2 === 0 && (
-                  <figcaption
-                    className={`
-                        absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent 
-                        text-white transform translate-y-full group-hover:translate-y-0 
-                        transition-transform duration-300 p-3 sm:p-3 md:p-4
-                      `}
-                  >
-                    <h3 className="mb-1">{image.caption}</h3>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      {image.alt}
-                    </p>
-                  </figcaption>
-                )}
-                {/* 삭제가 되었을 때 캡션 */}
-                {index % 2 === 1 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-md hover:bg-accent transition-colors duration-200 shadow-lg">
-                      <RotateCcw className="w-4 h-4" />
-                      Restore
-                    </button>
-                  </div>
-                )}
-              </section>
-            </figure>
+          {items.map((item) => (
+            <ImageCard item={item} setItems={setItems} />
           ))}
         </article>
       </section>
@@ -132,7 +118,8 @@ export default function App() {
           <span className="hidden sm:inline"> • </span>
           <span className="block sm:inline">Gallery Wall Experience</span>
           <span className="block mt-2 text-xs sm:text-sm">
-            0 images hidden • 0 displayed
+            {deleteCount} images hidden • {galleryImages.length - deleteCount}{" "}
+            displayed
           </span>
         </p>
       </footer>
